@@ -4,9 +4,13 @@ namespace App\Entity;
 
 use App\Repository\ProductRepository;
 use Doctrine\ORM\Mapping as ORM;
+use ApiPlatform\Core\Annotation\ApiResource;
+use Doctrine\Common\Collections\ArrayCollection;
 
 /**
+ * @ApiResource()
  * @ORM\Entity(repositoryClass=ProductRepository::class)
+ *
  */
 class Product
 {
@@ -36,6 +40,13 @@ class Product
      * @ORM\Column(type="string", length=255, nullable=true)
      */
     private $imageUrl;
+
+    /**
+     * @ORM\Column(type="string", length=255, nullable=true)
+     */
+    private $slug;
+
+
 
     public function getId(): ?int
     {
@@ -89,4 +100,22 @@ class Product
 
         return $this;
     }
+
+    /**
+     * @return mixed
+     */
+    public function getSlug(): ?string
+    {
+        return $this->slug;
+    }
+
+    /**
+     * @param mixed $slug
+     */
+    public function setSlug($slug): void
+    {
+        $this->slug = $slug;
+    }
+
+
 }

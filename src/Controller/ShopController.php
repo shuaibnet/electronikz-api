@@ -2,86 +2,88 @@
 
 namespace App\Controller;
 
-use http\Env\Request;
-use phpDocumentor\Reflection\DocBlock\Serializer;
+use App\Entity\Product;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\ParamConverter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Serializer\Serializer;
 
 /**
  * @Route("/shop")
  */
 class ShopController extends AbstractController
 {
-    private  const POSTS = [
-        ['id'=> 1,
-        'slug' => 'Fjallraven',
-            'name'=> 'Fjallraven - Foldsack No. 1 Backpack, Fits 15 Laptops',
-            'price'=> 109.95,
-         ],
-        ['id'=> 2,
-            'slug' => 'tshirt',
-            'name'=> 'Mens Casual Premium Slim Fit T-Shirts',
-            'price'=> 19.95,
-        ],
-        ['id'=> 3,
-            'slug' => 'jacket',
-            'name'=> 'Mens Cotton Jacket',
-            'price'=> 109.95,
-        ],
-    ];
-
     /**
-     * @Route("/{page}", name="item_list", defaults={"page": 5}, requirements={"page"="\d+"})
+     * @Route("/{page}", name="product_list", defaults={"page": 5}, requirements={"page"="\d+"})
      */
-    public function list($page=1, Request $request)
+    public function list($page = 1, Request $request)
     {
         $limit = $request->get('limit', 10);
+        $repository = $this->getDoctrine()->getRepository(Product::class);
+        $items = $repository->findAll();
 
         return $this->json(
             [
                 'page' => $page,
                 'limit' => $limit,
-                'data' => array_map(function (Shop $item) {
-                    return $this->generateUrl('item_by_slug', ['slug' => $item->getSlug()]);
-                }, self::POSTS)
+                'data' => array_map(function (Product $item) {
+                    return $this->generateUrl('product_by_slug', ['slug' => $item->getSlug()]);
+                }, $items)
             ]
         );
     }
 
-
     /**
-     * @Route("/{id}", name="item_by_id", requirements={"id"="\d+"})
+     * @Route("/product/{id}", name="product_by_id", requirements={"id"="\d+"}, methods={"GET"})
+     * @ParamConverter("item", class="App:Product")
      */
-    public function post($id)
+    public function item($item)
     {
-        return $this->json(
-           self::POSTS [array_search($id, array_column(self::POSTS, 'id'))]
-        );
-
+        // It's the same as doing find($id) on repository
+        return $this->json($item);
     }
 
     /**
-     * @Route("/{slug}", name="item_by_slug")
+     * @Route("/product/{slug}", name="product_by_slug", methods={"GET"})
+     * The below annotation is not required when $item is typehinted with Product
+     * and route parameter name matches any field on the Product entity
+     * @ParamConverter("item", class="App:Product", options={"mapping": {"slug": "slug"}})
      */
-public function postBySlug($slug)
-{
-    return $this->json(
-       self::POSTS[ array_search($slug, array_column(self::POSTS, 'slug'))]
-    );
-}
+    public function itemBySlug(Product $item)
+    {
+        // Same as doing findOneBy(['slug' => contents of {slug}])
+        return $this->json($item);
+    }
 
-/**
- * @Route ("/add", name="shop_add", methods={"POST"})
- */
-public function add(Request $request)
-{
-    /** @var Serializer $serializer */
-    $serializer = $this->get('serializer');
+    /**
+     * @Route("/add", name="product_add", methods={"POST"})
+     */
+    public function add(Request $request)
+    {
+        /** @var Serializer $serializer */
+        $serializer = $this->get('serializer');
 
-    $shop = $serializer->desialize($request->getContent(), Shop::class, 'json');
-    $em = $this->getDoctrine()->getManager();
-    $em->persist($shop);
-    $em->flush();
-}
+        $product = $serializer->deserialize($request->getContent(), Product::class, 'json');
+
+        $em = $this->getDoctrine()->getManager();
+        $em->persist($product);
+        $em->flush();
+
+        return $this->json($product);
+    }
+
+    /**
+     * @Route("/product/{id}", name="product_delete", methods={"DELETE"})
+     */
+    public function delete(Product $item)
+    {
+        $em = $this->getDoctrine()->getManager();
+        $em->remove($item);
+        $em->flush();
+
+        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
+    }
 }
