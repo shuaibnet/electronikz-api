@@ -48,6 +48,12 @@ class Product
 
 
 
+    /**
+     * @ORM\ManyToOne(targetEntity="App\Entity\User")
+     * @ORM\JoinColumn(nullable=false)
+     */
+    private $seller;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -115,6 +121,22 @@ class Product
     public function setSlug($slug): void
     {
         $this->slug = $slug;
+    }
+
+    /**
+     * @return User
+     */
+    public function getSeller(): User
+    {
+        return $this->seller;
+    }
+
+    /**
+     * @param User $seller
+     */
+    public function setSeller(User $seller): void
+    {
+        $this->seller = $seller;
     }
 
 
